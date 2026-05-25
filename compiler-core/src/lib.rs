@@ -3,11 +3,12 @@
 // No logic lives here — every export delegates to its stage module.
 use wasm_bindgen::prelude::*;
 
-mod ast;
-mod buffer;
+pub mod ast;
+pub mod buffer;
 mod codegen;
 mod error_handler;
-mod first_follow;
+pub mod first_follow;
+mod grammar;
 mod ir;
 mod lexer;
 mod ll1_parser;
@@ -18,7 +19,7 @@ mod lr_table;
 mod rd_parser;
 mod semantic;
 mod symbol_table;
-mod types;
+pub mod types;
 mod vm;
 
 /// Serialize any value to JSON; on failure return an error JSON object.

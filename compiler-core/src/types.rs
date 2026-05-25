@@ -11,7 +11,7 @@ pub struct Token {
     pub column: usize,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
 pub enum TokenKind {
     // Keywords
     Program,
@@ -57,7 +57,7 @@ pub enum TokenKind {
     Unknown,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
 pub enum RelopKind {
     Eq,
     Ne,
@@ -67,14 +67,14 @@ pub enum RelopKind {
     Gt,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
 pub enum AddopKind {
     Plus,
     Minus,
     Or,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
 pub enum MulopKind {
     Star,
     Slash,

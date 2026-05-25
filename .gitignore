@@ -28,6 +28,7 @@ desktop.ini
 
 # ── Project planning (internal, not for repo) ─────────────────────────────────
 PLAN.md
+/docs/
 
 # ── Logs ──────────────────────────────────────────────────────────────────────
 *.log
