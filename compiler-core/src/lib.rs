@@ -11,7 +11,7 @@ pub mod first_follow;
 mod grammar;
 mod ir;
 pub mod lexer;
-mod ll1_parser;
+pub mod ll1_parser;
 mod ll1_table;
 mod lr_items;
 mod lr_parser;
