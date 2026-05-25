@@ -13,13 +13,13 @@ pub struct Ll1TraceStep {
 }
 
 #[derive(Serialize)]
-pub struct Ll1ParseOutput {
+pub struct Ll1Output {
     pub accepted: bool,
     pub trace: Vec<Ll1TraceStep>,
     pub errors: Vec<CompilerError>,
 }
 
-pub fn parse(source: &str) -> Ll1ParseOutput {
+pub fn parse(source: &str) -> Ll1Output {
     let lex_out = lexer::tokenize(source);
     let mut errors = lex_out.errors;
     let tokens = lex_out.tokens;
@@ -126,7 +126,7 @@ pub fn parse(source: &str) -> Ll1ParseOutput {
         }
     }
 
-    Ll1ParseOutput {
+    Ll1Output {
         accepted: errors.is_empty(),
         trace,
         errors,

@@ -1,10 +1,10 @@
 // SLR(1) action and goto table construction from LR(0) item sets.
 // Uses FOLLOW sets for reduce decisions (SLR approach, equivalent to LALR(1) for this grammar).
-use std::collections::HashMap;
-use serde::Serialize;
-use crate::first_follow::{Grammar, GrammarSymbol, NonTerminal, FirstFollowSets};
-use crate::lr_items::{LrProd, build_lr_grammar, canonical_collection};
+use crate::first_follow::{FirstFollowSets, Grammar, GrammarSymbol, NonTerminal};
+use crate::lr_items::{build_lr_grammar, canonical_collection, LrProd};
 use crate::types::{AddopKind, MulopKind, RelopKind, TokenKind};
+use serde::Serialize;
+use std::collections::HashMap;
 
 #[derive(Clone, Debug, Serialize)]
 pub enum LrAction {
@@ -20,7 +20,7 @@ pub struct LrTable {
     pub n_states: usize,
 }
 
-pub fn build_lr_table(grammar: &Grammar) -> LrTable {
+pub fn build_lalr1_table(grammar: &Grammar) -> LrTable {
     let prods = build_lr_grammar(grammar);
     let sets = grammar.compute_first_follow();
     let (states, transitions) = canonical_collection(&prods);
@@ -49,21 +49,30 @@ pub fn build_lr_table(grammar: &Grammar) -> LrTable {
     // Reduces use FOLLOW sets expanded across operator classes.
     for (s, items) in states.iter().enumerate() {
         for item in items {
-            if !item.is_complete(&prods) { continue; }
-            let prod = &prods[item.prod as usize];
+            if !item.is_complete(&prods) {
+                continue;
+            }
+            let prod = &prods[item.production];
             if prod.lhs.is_none() {
                 // Augmented production S' → Program · : accept on EOF
                 action[s].entry(TokenKind::Eof).or_insert(LrAction::Accept);
             } else if let Some(nt) = &prod.lhs {
                 for tok in follow_expanded(nt, &sets) {
                     // prefer existing shift over reduce (shift-reduce conflict resolution)
-                    action[s].entry(tok).or_insert(LrAction::Reduce(item.prod as usize));
+                    action[s]
+                        .entry(tok)
+                        .or_insert(LrAction::Reduce(item.production));
                 }
             }
         }
     }
 
-    LrTable { action, goto_map, prods, n_states: n }
+    LrTable {
+        action,
+        goto_map,
+        prods,
+        n_states: n,
+    }
 }
 
 /// Extracts FOLLOW(nt) as a list of TokenKinds, expanding operator class representatives.
@@ -72,7 +81,9 @@ fn follow_expanded(nt: &NonTerminal, sets: &FirstFollowSets) -> Vec<TokenKind> {
     for sym in &sets.follow[nt] {
         match sym {
             GrammarSymbol::Terminal(t) => {
-                for k in expand_op(t) { toks.push(k); }
+                for k in expand_op(t) {
+                    toks.push(k);
+                }
             }
             GrammarSymbol::Eof => toks.push(TokenKind::Eof),
             _ => {}
@@ -85,16 +96,24 @@ fn follow_expanded(nt: &NonTerminal, sets: &FirstFollowSets) -> Vec<TokenKind> {
 pub fn expand_op(tok: &TokenKind) -> Vec<TokenKind> {
     match tok {
         TokenKind::Relop(_) => vec![
-            TokenKind::Relop(RelopKind::Eq), TokenKind::Relop(RelopKind::Ne),
-            TokenKind::Relop(RelopKind::Lt), TokenKind::Relop(RelopKind::Le),
-            TokenKind::Relop(RelopKind::Ge), TokenKind::Relop(RelopKind::Gt),
+            TokenKind::Relop(RelopKind::Eq),
+            TokenKind::Relop(RelopKind::Ne),
+            TokenKind::Relop(RelopKind::Lt),
+            TokenKind::Relop(RelopKind::Le),
+            TokenKind::Relop(RelopKind::Ge),
+            TokenKind::Relop(RelopKind::Gt),
         ],
         TokenKind::Addop(_) => vec![
-            TokenKind::Addop(AddopKind::Plus), TokenKind::Addop(AddopKind::Minus), TokenKind::Or,
+            TokenKind::Addop(AddopKind::Plus),
+            TokenKind::Addop(AddopKind::Minus),
+            TokenKind::Or,
         ],
         TokenKind::Mulop(_) => vec![
-            TokenKind::Mulop(MulopKind::Star), TokenKind::Mulop(MulopKind::Slash),
-            TokenKind::Div, TokenKind::Mod, TokenKind::And,
+            TokenKind::Mulop(MulopKind::Star),
+            TokenKind::Mulop(MulopKind::Slash),
+            TokenKind::Div,
+            TokenKind::Mod,
+            TokenKind::And,
         ],
         other => vec![other.clone()],
     }
@@ -115,7 +134,7 @@ fn class_rep(tok: &TokenKind) -> TokenKind {
         TokenKind::Addop(_) => TokenKind::Addop(AddopKind::Plus),
         TokenKind::Mulop(_) => TokenKind::Mulop(MulopKind::Star),
         TokenKind::Relop(_) => TokenKind::Relop(RelopKind::Eq),
-        TokenKind::Or       => TokenKind::Addop(AddopKind::Plus),
+        TokenKind::Or => TokenKind::Addop(AddopKind::Plus),
         TokenKind::Div | TokenKind::Mod | TokenKind::And => TokenKind::Mulop(MulopKind::Star),
         other => other.clone(),
     }

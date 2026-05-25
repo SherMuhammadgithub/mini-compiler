@@ -49,7 +49,7 @@ pub fn run_lr_parser(source: &str) -> String {
 
 #[wasm_bindgen]
 pub fn run_symbol_table(source: &str) -> String {
-    to_json(&semantic::analyze(source))
+    to_json(&symbol_table::analyze(source))
 }
 
 #[wasm_bindgen]

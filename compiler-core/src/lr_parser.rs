@@ -1,9 +1,9 @@
 // LALR(1) shift-reduce parser driver — explicit state stack, while loop, zero recursion.
-use serde::Serialize;
-use crate::first_follow::{Grammar, symbol_display};
+use crate::first_follow::{symbol_display, Grammar};
 use crate::lexer;
-use crate::lr_table::{build_lr_table, lookup_action, LrAction};
+use crate::lr_table::{build_lalr1_table, lookup_action, LrAction};
 use crate::types::CompilerError;
+use serde::Serialize;
 
 #[derive(Serialize)]
 pub struct LrTraceStep {
@@ -14,19 +14,56 @@ pub struct LrTraceStep {
 }
 
 #[derive(Serialize)]
-pub struct LrParseOutput {
+pub struct LrOutput {
     pub accepted: bool,
     pub trace: Vec<LrTraceStep>,
     pub errors: Vec<CompilerError>,
+    pub action_table: Vec<Vec<(String, String)>>, // serialized for project report
+    pub goto_table: Vec<Vec<(String, usize)>>,
 }
 
-pub fn parse(source: &str) -> LrParseOutput {
+pub fn parse(source: &str) -> LrOutput {
     let lex_out = lexer::tokenize(source);
     let mut errors = lex_out.errors;
     let tokens = lex_out.tokens;
 
     let grammar = Grammar::pascal_subset();
-    let table = build_lr_table(&grammar);
+    let table = build_lalr1_table(&grammar);
+
+    // Serialize action and goto tables for the project report.
+    let action_table: Vec<Vec<(String, String)>> = table
+        .action
+        .iter()
+        .map(|row| {
+            let mut entries: Vec<(String, String)> = row
+                .iter()
+                .map(|(tok, act)| {
+                    let tok_str = format!("{:?}", tok);
+                    let act_str = match act {
+                        LrAction::Shift(n) => format!("s{}", n),
+                        LrAction::Reduce(n) => format!("r{}", n),
+                        LrAction::Accept => "acc".to_string(),
+                    };
+                    (tok_str, act_str)
+                })
+                .collect();
+            entries.sort_by(|a, b| a.0.cmp(&b.0));
+            entries
+        })
+        .collect();
+
+    let goto_table: Vec<Vec<(String, usize)>> = table
+        .goto_map
+        .iter()
+        .map(|row| {
+            let mut entries: Vec<(String, usize)> = row
+                .iter()
+                .map(|(nt, &next)| (nt.display_name().to_owned(), next))
+                .collect();
+            entries.sort_by(|a, b| a.0.cmp(&b.0));
+            entries
+        })
+        .collect();
 
     let mut state_stack: Vec<usize> = vec![0];
     let mut sym_stack: Vec<String> = vec![];
@@ -40,8 +77,13 @@ pub fn parse(source: &str) -> LrParseOutput {
         match lookup_action(&table.action[state], &current.kind) {
             Some(LrAction::Shift(next)) => {
                 let next = *next;
-                record_step(&state_stack, &sym_stack, &tokens[pos..],
-                    &format!("Shift '{}'", current.lexeme), &mut trace);
+                record_step(
+                    &state_stack,
+                    &sym_stack,
+                    &tokens[pos..],
+                    &format!("Shift '{}'", current.lexeme),
+                    &mut trace,
+                );
                 sym_stack.push(current.lexeme.clone());
                 state_stack.push(next);
                 pos = (pos + 1).min(tokens.len() - 1);
@@ -56,36 +98,51 @@ pub fn parse(source: &str) -> LrParseOutput {
                 };
                 let rhs_str: Vec<String> = prod.rhs.iter().map(symbol_display).collect();
                 let action_str = format!("Reduce {} → {}", lhs_str, rhs_str.join(" "));
-                record_step(&state_stack, &sym_stack, &tokens[pos..], &action_str, &mut trace);
+                record_step(
+                    &state_stack,
+                    &sym_stack,
+                    &tokens[pos..],
+                    &action_str,
+                    &mut trace,
+                );
 
-                // Pop rhs_len symbols and states
                 for _ in 0..rhs_len {
                     sym_stack.pop();
                     state_stack.pop();
                 }
 
-                // Push LHS and goto
                 if let Some(nt) = &prod.lhs.clone() {
                     let top = *state_stack.last().unwrap();
                     if let Some(&next) = table.goto_map[top].get(nt) {
                         sym_stack.push(lhs_str);
                         state_stack.push(next);
                     } else {
-                        let msg = format!("missing goto for {} in state {}", nt.display_name(), top);
+                        let msg =
+                            format!("missing goto for {} in state {}", nt.display_name(), top);
                         push_error(&mut errors, &msg, current);
                         break;
                     }
                 }
             }
             Some(LrAction::Accept) => {
-                record_step(&state_stack, &sym_stack, &tokens[pos..], "Accept", &mut trace);
+                record_step(
+                    &state_stack,
+                    &sym_stack,
+                    &tokens[pos..],
+                    "Accept",
+                    &mut trace,
+                );
                 break;
             }
             None => {
-                // Error recovery: skip tokens until we find one with an action
                 let msg = format!("unexpected '{}' in state {}", current.lexeme, state);
-                record_step(&state_stack, &sym_stack, &tokens[pos..],
-                    &format!("Error: {}", msg), &mut trace);
+                record_step(
+                    &state_stack,
+                    &sym_stack,
+                    &tokens[pos..],
+                    &format!("Error: {}", msg),
+                    &mut trace,
+                );
                 push_error(&mut errors, &msg, current);
                 if pos + 1 < tokens.len() {
                     pos += 1;
@@ -95,14 +152,17 @@ pub fn parse(source: &str) -> LrParseOutput {
             }
         }
 
-        // Guard against runaway loops (shouldn't happen with a correct table)
-        if trace.len() > 10_000 { break; }
+        if trace.len() > 10_000 {
+            break;
+        }
     }
 
-    LrParseOutput {
+    LrOutput {
         accepted: errors.is_empty(),
         trace,
         errors,
+        action_table,
+        goto_table,
     }
 }
 

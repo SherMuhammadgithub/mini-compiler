@@ -1,7 +1,7 @@
 // LR(0) item computation for the Pascal LALR(1) parser.
 // Uses the transformed grammar (Grammar::pascal_subset) with epsilon stripped.
-use std::collections::{HashMap, HashSet};
 use crate::first_follow::{Grammar, GrammarSymbol, NonTerminal};
+use std::collections::{HashMap, HashSet};
 
 /// One production with Epsilon stripped from the RHS.
 #[derive(Clone, Debug)]
@@ -14,17 +14,17 @@ pub struct LrProd {
 /// LR(0) item: production index + dot position.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct LrItem {
-    pub prod: u16,
-    pub dot: u16,
+    pub production: usize,
+    pub dot: usize,
 }
 
 impl LrItem {
     pub fn is_complete(&self, prods: &[LrProd]) -> bool {
-        self.dot as usize >= prods[self.prod as usize].rhs.len()
+        self.dot >= prods[self.production].rhs.len()
     }
 
     pub fn sym_after_dot<'a>(&self, prods: &'a [LrProd]) -> Option<&'a GrammarSymbol> {
-        prods[self.prod as usize].rhs.get(self.dot as usize)
+        prods[self.production].rhs.get(self.dot)
     }
 }
 
@@ -42,7 +42,11 @@ pub fn build_lr_grammar(g: &Grammar) -> Vec<LrProd> {
     for (i, (lhs, rhs)) in g.productions.iter().enumerate() {
         prods.push(LrProd {
             lhs: Some(lhs.clone()),
-            rhs: rhs.iter().filter(|s| **s != GrammarSymbol::Epsilon).cloned().collect(),
+            rhs: rhs
+                .iter()
+                .filter(|s| **s != GrammarSymbol::Epsilon)
+                .cloned()
+                .collect(),
             source_idx: Some(i),
         });
     }
@@ -54,10 +58,15 @@ pub fn closure(seeds: ItemSet, prods: &[LrProd]) -> ItemSet {
     let mut set: HashSet<LrItem> = seeds.into_iter().collect();
     let mut worklist: Vec<LrItem> = set.iter().cloned().collect();
     while let Some(item) = worklist.pop() {
-        let Some(GrammarSymbol::NonTerminal(nt)) = item.sym_after_dot(prods) else { continue };
+        let Some(GrammarSymbol::NonTerminal(nt)) = item.sym_after_dot(prods) else {
+            continue;
+        };
         for (i, prod) in prods.iter().enumerate() {
             if prod.lhs.as_ref() == Some(nt) {
-                let new = LrItem { prod: i as u16, dot: 0 };
+                let new = LrItem {
+                    production: i,
+                    dot: 0,
+                };
                 if set.insert(new.clone()) {
                     worklist.push(new);
                 }
@@ -71,17 +80,31 @@ pub fn closure(seeds: ItemSet, prods: &[LrProd]) -> ItemSet {
 
 /// Goto: advance the dot past `sym` in every matching item, then close.
 pub fn goto(items: &ItemSet, sym: &GrammarSymbol, prods: &[LrProd]) -> ItemSet {
-    let seeds: Vec<LrItem> = items.iter()
+    let seeds: Vec<LrItem> = items
+        .iter()
         .filter(|it| it.sym_after_dot(prods) == Some(sym))
-        .map(|it| LrItem { prod: it.prod, dot: it.dot + 1 })
+        .map(|it| LrItem {
+            production: it.production,
+            dot: it.dot + 1,
+        })
         .collect();
-    if seeds.is_empty() { vec![] } else { closure(seeds, prods) }
+    if seeds.is_empty() {
+        vec![]
+    } else {
+        closure(seeds, prods)
+    }
 }
 
 /// Builds the canonical LR(0) item collection.
 /// Returns (states, transitions) where transitions[s] = [(symbol, next_state_idx), ...].
 pub fn canonical_collection(prods: &[LrProd]) -> (Vec<ItemSet>, Vec<Vec<(GrammarSymbol, usize)>>) {
-    let initial = closure(vec![LrItem { prod: 0, dot: 0 }], prods);
+    let initial = closure(
+        vec![LrItem {
+            production: 0,
+            dot: 0,
+        }],
+        prods,
+    );
     let mut states: Vec<ItemSet> = vec![initial];
     let mut state_map: HashMap<ItemSet, usize> = HashMap::new();
     state_map.insert(states[0].clone(), 0);
@@ -90,7 +113,8 @@ pub fn canonical_collection(prods: &[LrProd]) -> (Vec<ItemSet>, Vec<Vec<(Grammar
     let mut i = 0;
     while i < states.len() {
         // Collect distinct symbols after dots using HashSet (GrammarSymbol: Hash+Eq).
-        let syms: HashSet<GrammarSymbol> = states[i].iter()
+        let syms: HashSet<GrammarSymbol> = states[i]
+            .iter()
             .filter_map(|it| it.sym_after_dot(prods).cloned())
             .collect();
         // Sort for deterministic state numbering.
@@ -100,7 +124,9 @@ pub fn canonical_collection(prods: &[LrProd]) -> (Vec<ItemSet>, Vec<Vec<(Grammar
         let state_i = states[i].clone();
         for sym in syms {
             let next = goto(&state_i, &sym, prods);
-            if next.is_empty() { continue; }
+            if next.is_empty() {
+                continue;
+            }
             let next_idx = if let Some(&idx) = state_map.get(&next) {
                 idx
             } else {

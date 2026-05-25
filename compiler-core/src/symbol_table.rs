@@ -6,7 +6,9 @@ pub const TABLE_SIZE: usize = 211; // prime — reduces clustering
 
 // djb2 hash — distributes identifier strings well with few collisions
 pub fn djb2_hash(s: &str) -> usize {
-    s.bytes().fold(5381usize, |h, c| h.wrapping_mul(33).wrapping_add(c as usize)) % TABLE_SIZE
+    s.bytes().fold(5381usize, |h, c| {
+        h.wrapping_mul(33).wrapping_add(c as usize)
+    }) % TABLE_SIZE
 }
 
 /// One hash table for a single scope, using separate chaining.
@@ -17,7 +19,10 @@ pub struct ScopeTable {
 
 impl ScopeTable {
     pub fn new(level: usize) -> Self {
-        Self { slots: vec![vec![]; TABLE_SIZE], level }
+        Self {
+            slots: vec![vec![]; TABLE_SIZE],
+            level,
+        }
     }
 
     /// Insert a new entry. Returns an error if the name already exists in this scope.
@@ -42,6 +47,11 @@ impl ScopeTable {
         self.slots[djb2_hash(name)].iter().find(|e| e.name == name)
     }
 
+    /// Same as lookup — searches this scope only (alias for clarity at call sites).
+    pub fn lookup_current(&self, name: &str) -> Option<&SymbolEntry> {
+        self.lookup(name)
+    }
+
     /// Remove an entry by name from this scope.
     pub fn delete(&mut self, name: &str) {
         let slot = djb2_hash(name);
@@ -49,7 +59,7 @@ impl ScopeTable {
     }
 
     /// Collect all entries (called when printing or exiting a scope).
-    pub fn all_entries(&self) -> Vec<SymbolEntry> {
+    pub fn print_table(&self) -> Vec<SymbolEntry> {
         self.slots.iter().flatten().cloned().collect()
     }
 }
@@ -61,7 +71,9 @@ pub struct SymbolTable {
 
 impl SymbolTable {
     pub fn new() -> Self {
-        Self { scopes: vec![ScopeTable::new(0)] }
+        Self {
+            scopes: vec![ScopeTable::new(0)],
+        }
     }
 
     /// Push a new inner scope.
@@ -71,7 +83,10 @@ impl SymbolTable {
 
     /// Pop and return entries from the innermost scope.
     pub fn end_scope(&mut self) -> Vec<SymbolEntry> {
-        self.scopes.pop().map(|s| s.all_entries()).unwrap_or_default()
+        self.scopes
+            .pop()
+            .map(|s| s.print_table())
+            .unwrap_or_default()
     }
 
     pub fn current_level(&self) -> usize {
@@ -90,12 +105,15 @@ impl SymbolTable {
 
     /// Insert into the current (innermost) scope.
     pub fn insert(&mut self, entry: SymbolEntry) -> Result<(), CompilerError> {
-        self.scopes.last_mut().expect("at least global scope").insert(entry)
+        self.scopes
+            .last_mut()
+            .expect("at least global scope")
+            .insert(entry)
     }
 
     /// Collect every entry from all scopes (for final report).
     pub fn snapshot(&self) -> Vec<SymbolEntry> {
-        self.scopes.iter().flat_map(|s| s.all_entries()).collect()
+        self.scopes.iter().flat_map(|s| s.print_table()).collect()
     }
 }
 
@@ -104,4 +122,17 @@ impl SymbolTable {
 pub struct ScopeDump {
     pub level: usize,
     pub entries: Vec<SymbolEntry>,
+}
+
+/// Output of the Phase 9 symbol table pass.
+#[derive(Serialize)]
+pub struct SymbolTableOutput {
+    pub entries: Vec<SymbolEntry>,
+    pub errors: Vec<crate::types::CompilerError>,
+    pub scope_dumps: Vec<ScopeDump>,
+}
+
+/// Run the full front-end pipeline and return symbol table information.
+pub fn analyze(source: &str) -> SymbolTableOutput {
+    crate::semantic::symbol_table_analyze(source)
 }

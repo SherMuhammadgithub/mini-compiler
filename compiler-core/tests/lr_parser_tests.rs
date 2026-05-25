@@ -125,6 +125,34 @@ fn trace_last_step_is_accept() {
     assert_eq!(last.action, "Accept");
 }
 
+// ── Serialized tables ─────────────────────────────────────────────────────────
+
+#[test]
+fn action_table_is_non_empty() {
+    let out = parse("program p ( x ) ; begin end .");
+    assert!(!out.action_table.is_empty());
+}
+
+#[test]
+fn goto_table_is_non_empty() {
+    let out = parse("program p ( x ) ; begin end .");
+    assert!(!out.goto_table.is_empty());
+}
+
+#[test]
+fn action_table_has_accept_entry() {
+    let out = parse("program p ( x ) ; begin end .");
+    let has_acc = out.action_table.iter().any(|row| row.iter().any(|(_, v)| v == "acc"));
+    assert!(has_acc);
+}
+
+#[test]
+fn goto_table_has_program_entry() {
+    let out = parse("program p ( x ) ; begin end .");
+    let has_prog = out.goto_table.iter().any(|row| row.iter().any(|(k, _)| k == "program"));
+    assert!(has_prog);
+}
+
 // ── Error detection ───────────────────────────────────────────────────────────
 
 #[test]
