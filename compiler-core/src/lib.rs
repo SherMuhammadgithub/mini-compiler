@@ -14,7 +14,7 @@ pub mod lexer;
 pub mod ll1_parser;
 mod ll1_table;
 mod lr_items;
-mod lr_parser;
+pub mod lr_parser;
 mod lr_table;
 pub mod rd_parser;
 mod semantic;
