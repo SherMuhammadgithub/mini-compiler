@@ -17,8 +17,8 @@ mod lr_items;
 pub mod lr_parser;
 mod lr_table;
 pub mod rd_parser;
-mod semantic;
-mod symbol_table;
+pub mod semantic;
+pub mod symbol_table;
 pub mod types;
 mod vm;
 
