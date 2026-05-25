@@ -191,3 +191,29 @@
   border-bottom: 1px solid var(--border);
 }
 .sym-table td { padding: 3px 8px; border-bottom: 1px solid var(--border); color: #24292F; }
+
+/* ── Examples dropdown ───────────────────────────────────────────────────── */
+
+.example-select {
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg2);
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+  max-width: 160px;
+}
+
+/* ── Mobile layout ───────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .toolbar { flex-wrap: wrap; height: auto; padding: 8px; gap: 8px; }
+  .tabs    { flex-wrap: wrap; }
+  .main    { overflow-y: auto; }
+
+  /* Stack allotment panes vertically on narrow screens */
+  .main [class*="splitView"] { flex-direction: column !important; }
+  .main [class*="sash"]      { display: none !important; }
+  .main [class*="pane"]      { height: auto !important; min-height: 200px; }
+}

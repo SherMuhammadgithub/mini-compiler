@@ -1,0 +1,7 @@
+Program: gcd_example
+Input:   12 8
+Output:  4
+
+Steps:   47
+Halted:  true
+Errors:  0

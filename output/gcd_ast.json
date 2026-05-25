@@ -1,0 +1,66 @@
+{
+  "ast": {
+    "kind": {
+      "Program": {
+        "name": "gcd_example",
+        "params": ["input", "output"],
+        "declarations": [
+          { "kind": { "VarDecl": { "names": ["x", "y"], "type_name": "integer" } }, "span": { "line": 2, "column": 1, "length": 3 } }
+        ],
+        "subprograms": [
+          {
+            "kind": {
+              "FunctionDecl": {
+                "name": "gcd",
+                "params": [{ "names": ["a", "b"], "type_name": "integer" }],
+                "return_type": "integer",
+                "body": {
+                  "kind": {
+                    "CompoundStatement": {
+                      "statements": [
+                        {
+                          "kind": {
+                            "IfStatement": {
+                              "condition": {
+                                "kind": { "BinaryExpr": { "op": "=", "left": { "kind": { "Variable": { "name": "b", "index": null } }, "span": { "line": 5, "column": 6, "length": 1 } }, "right": { "kind": { "IntLiteral": { "value": 0 } }, "span": { "line": 5, "column": 10, "length": 1 } } } },
+                                "span": { "line": 5, "column": 6, "length": 5 }
+                              },
+                              "then_branch": {
+                                "kind": { "Assign": { "target": "gcd", "index": null, "value": { "kind": { "Variable": { "name": "a", "index": null } }, "span": { "line": 5, "column": 24, "length": 1 } } } },
+                                "span": { "line": 5, "column": 17, "length": 8 }
+                              },
+                              "else_branch": {
+                                "kind": { "Assign": { "target": "gcd", "index": null, "value": { "kind": { "FunctionCall": { "name": "gcd", "args": [{ "kind": { "Variable": { "name": "b", "index": null } }, "span": { "line": 6, "column": 21, "length": 1 } }, { "kind": { "BinaryExpr": { "op": "mod", "left": { "kind": { "Variable": { "name": "a", "index": null } }, "span": { "line": 6, "column": 25, "length": 1 } }, "right": { "kind": { "Variable": { "name": "b", "index": null } }, "span": { "line": 6, "column": 31, "length": 1 } } } }, "span": { "line": 6, "column": 25, "length": 7 } }] } }, "span": { "line": 6, "column": 15, "length": 19 } } } },
+                                "span": { "line": 6, "column": 8, "length": 26 }
+                              }
+                            }
+                          },
+                          "span": { "line": 5, "column": 3, "length": 2 }
+                        }
+                      ]
+                    }
+                  },
+                  "span": { "line": 4, "column": 1, "length": 5 }
+                }
+              }
+            },
+            "span": { "line": 3, "column": 1, "length": 8 }
+          }
+        ],
+        "body": {
+          "kind": {
+            "CompoundStatement": {
+              "statements": [
+                { "kind": { "FunctionCall": { "name": "read", "args": [{ "kind": { "Variable": { "name": "x", "index": null } }, "span": { "line": 9, "column": 10, "length": 1 } }, { "kind": { "Variable": { "name": "y", "index": null } }, "span": { "line": 9, "column": 14, "length": 1 } }] } }, "span": { "line": 9, "column": 3, "length": 4 } },
+                { "kind": { "FunctionCall": { "name": "write", "args": [{ "kind": { "FunctionCall": { "name": "gcd", "args": [{ "kind": { "Variable": { "name": "x", "index": null } }, "span": { "line": 10, "column": 17, "length": 1 } }, { "kind": { "Variable": { "name": "y", "index": null } }, "span": { "line": 10, "column": 21, "length": 1 } }] } }, "span": { "line": 10, "column": 11, "length": 15 } }] } }, "span": { "line": 10, "column": 3, "length": 5 } }
+              ]
+            }
+          },
+          "span": { "line": 8, "column": 1, "length": 5 }
+        }
+      }
+    },
+    "span": { "line": 1, "column": 1, "length": 7 }
+  },
+  "errors": []
+}

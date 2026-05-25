@@ -263,6 +263,11 @@ impl Grammar {
                 FactorRest,
                 vec![t(TK::LParen), nt(ExpressionList), t(TK::RParen)],
             ),
+            // P52b: factor_rest → [ expression ]
+            (
+                FactorRest,
+                vec![t(TK::LBracket), nt(Expression), t(TK::RBracket)],
+            ),
             // P53: factor_rest → ε
             (FactorRest, vec![ep.clone()]),
             // P54: sign → +

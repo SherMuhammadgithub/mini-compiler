@@ -83,6 +83,14 @@ impl Parser {
                         kind: NodeKind::FunctionCall { name, args },
                         span,
                     }
+                } else if self.at(&TokenKind::LBracket) {
+                    self.advance();
+                    let index = self.parse_expression();
+                    self.expect(&TokenKind::RBracket);
+                    AstNode {
+                        kind: NodeKind::Variable { name, index: Some(Box::new(index)) },
+                        span,
+                    }
                 } else {
                     AstNode {
                         kind: NodeKind::Variable { name, index: None },

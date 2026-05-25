@@ -17,9 +17,11 @@ import { StepMode }      from './components/StepMode';
 import { ReportTables }  from './components/ReportTables';
 import './App.css';
 
-// ── Default program ───────────────────────────────────────────────────────────
+// ── Sample programs ───────────────────────────────────────────────────────────
 
-const DEFAULT_SOURCE = `program example ( input , output ) ;
+const EXAMPLES: Record<string, string> = {
+  'Simple (default)':
+`program example ( input , output ) ;
 var n : integer ;
 begin
   n := 5 ;
@@ -27,7 +29,52 @@ begin
     write ( n )
   else
     write ( 0 )
-end .`;
+end .`,
+
+  'GCD (Aho App. A)':
+`program gcd_example ( input , output ) ;
+var x , y : integer ;
+function gcd ( a , b : integer ) : integer ;
+begin
+  if b = 0 then gcd := a
+  else gcd := gcd ( b , a mod b )
+end ;
+begin
+  read ( x , y ) ;
+  write ( gcd ( x , y ) )
+end .`,
+
+  'Array Sum':
+`program arraysum ( input , output ) ;
+var a : array [ 1 .. 10 ] of integer ;
+var i , sum : integer ;
+begin
+  sum := 0 ;
+  i := 1 ;
+  while i <= 10 do
+  begin
+    read ( a [ i ] ) ;
+    sum := sum + a [ i ] ;
+    i := i + 1
+  end ;
+  write ( sum )
+end .`,
+
+  'Factorial (recursive)':
+`program factorial ( input , output ) ;
+var n : integer ;
+function fact ( k : integer ) : integer ;
+begin
+  if k = 0 then fact := 1
+  else fact := k * fact ( k - 1 )
+end ;
+begin
+  read ( n ) ;
+  write ( fact ( n ) )
+end .`,
+};
+
+const DEFAULT_SOURCE = EXAMPLES['Simple (default)'];
 
 // ── Monaco Pascal language registration ───────────────────────────────────────
 
@@ -243,6 +290,14 @@ export default function App() {
     <div className={`app ${dark ? 'dark' : 'light'}`}>
       <header className="toolbar">
         <span className="brand">Pascal Compiler</span>
+        <select
+          className="example-select"
+          defaultValue=""
+          onChange={e => { if (e.target.value) { setSource(EXAMPLES[e.target.value]); e.target.value = ''; } }}
+        >
+          <option value="" disabled>Examples…</option>
+          {Object.keys(EXAMPLES).map(k => <option key={k} value={k}>{k}</option>)}
+        </select>
         {outputs.loading && <span className="loading-dot">●</span>}
         <div className="tabs">
           {stepMode

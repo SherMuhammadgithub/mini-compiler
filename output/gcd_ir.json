@@ -1,0 +1,20 @@
+{
+  "instructions": [
+    { "op": "label",   "arg1": { "Label": "gcd_entry" }, "arg2": null, "result": null },
+    { "op": "iffalse", "arg1": { "Var": "b" }, "arg2": { "Label": "L0" }, "result": null },
+    { "op": ":=",      "arg1": { "Var": "a" }, "arg2": null, "result": { "Var": "gcd" } },
+    { "op": "goto",    "arg1": { "Label": "L1" }, "arg2": null, "result": null },
+    { "op": "label",   "arg1": { "Label": "L0" }, "arg2": null, "result": null },
+    { "op": "mod",     "arg1": { "Var": "a" }, "arg2": { "Var": "b" }, "result": { "Var": "t0" } },
+    { "op": "param",   "arg1": { "Var": "b" }, "arg2": null, "result": null },
+    { "op": "param",   "arg1": { "Var": "t0" }, "arg2": null, "result": null },
+    { "op": "call",    "arg1": { "Var": "gcd" }, "arg2": { "IntLit": 2 }, "result": { "Var": "t1" } },
+    { "op": ":=",      "arg1": { "Var": "t1" }, "arg2": null, "result": { "Var": "gcd" } },
+    { "op": "label",   "arg1": { "Label": "L1" }, "arg2": null, "result": null },
+    { "op": "return",  "arg1": { "Var": "gcd" }, "arg2": null, "result": null },
+    { "op": "param",   "arg1": { "Var": "x" }, "arg2": null, "result": null },
+    { "op": "param",   "arg1": { "Var": "y" }, "arg2": null, "result": null },
+    { "op": "call",    "arg1": { "Var": "gcd" }, "arg2": { "IntLit": 2 }, "result": { "Var": "t2" } },
+    { "op": "write",   "arg1": { "Var": "t2" }, "arg2": null, "result": null }
+  ]
+}

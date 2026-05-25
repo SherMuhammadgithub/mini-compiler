@@ -1,0 +1,11 @@
+{
+  "symbol_snapshot": [
+    { "name": "gcd_example", "kind": "program",   "pascal_type": { "Simple": "integer" }, "scope": 0, "line": 1 },
+    { "name": "x",           "kind": "variable",  "pascal_type": { "Simple": "integer" }, "scope": 0, "line": 2 },
+    { "name": "y",           "kind": "variable",  "pascal_type": { "Simple": "integer" }, "scope": 0, "line": 2 },
+    { "name": "gcd",         "kind": "function",  "pascal_type": { "Simple": "integer" }, "scope": 0, "line": 3 },
+    { "name": "a",           "kind": "parameter", "pascal_type": { "Simple": "integer" }, "scope": 1, "line": 3 },
+    { "name": "b",           "kind": "parameter", "pascal_type": { "Simple": "integer" }, "scope": 1, "line": 3 }
+  ],
+  "errors": []
+}
