@@ -6,7 +6,7 @@ use wasm_bindgen::prelude::*;
 pub mod ast;
 pub mod buffer;
 mod codegen;
-mod error_handler;
+pub mod error_handler;
 pub mod first_follow;
 mod grammar;
 mod ir;
@@ -50,6 +50,11 @@ pub fn run_lr_parser(source: &str) -> String {
 #[wasm_bindgen]
 pub fn run_symbol_table(source: &str) -> String {
     to_json(&symbol_table::analyze(source))
+}
+
+#[wasm_bindgen]
+pub fn run_error_handler(source: &str) -> String {
+    to_json(&error_handler::analyze(source))
 }
 
 #[wasm_bindgen]
