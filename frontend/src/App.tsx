@@ -5,10 +5,11 @@ import 'allotment/dist/style.css';
 import { useCompiler } from './hooks/useCompiler';
 import type {
   CompilerError, TacInstr, SymbolEntry,
-  VmOutput as VmOut,
+  VmOutput as VmOut, Span,
 } from './types';
 import { TokenPanel } from './components/TokenPanel';
 import { ErrorPanel } from './components/ErrorPanel';
+import { AstView }    from './components/AstView';
 import './App.css';
 
 // ── Default program ───────────────────────────────────────────────────────────
@@ -186,7 +187,7 @@ export default function App() {
   const [source, setSource] = useState(DEFAULT_SOURCE);
   const [progInput, setProgInput] = useState('');
   const [dark, setDark] = useState(true);
-  const [activeTab, setActiveTab] = useState<'tokens'|'ir'|'vm'>('tokens');
+  const [activeTab, setActiveTab] = useState<'tokens'|'ir'|'vm'|'ast'>('tokens');
   const editorRef  = useRef<Parameters<OnMount>[0] | null>(null);
   const monacoRef  = useRef<Monaco | null>(null);
   const decorIds   = useRef<string[]>([]);
@@ -212,6 +213,16 @@ export default function App() {
     editorRef.current?.focus();
   };
 
+  const highlightSpan = (span: Span) => {
+    const editor = editorRef.current;
+    const monaco = monacoRef.current;
+    if (!editor || !monaco) return;
+    const range = { startLineNumber: span.line, startColumn: span.column, endLineNumber: span.line, endColumn: span.column + span.length };
+    editor.setSelection(range);
+    editor.revealRangeInCenter(range);
+    editor.focus();
+  };
+
   const toggleDark = () => {
     const next = !dark;
     setDark(next);
@@ -224,9 +235,9 @@ export default function App() {
         <span className="brand">Pascal Compiler</span>
         {outputs.loading && <span className="loading-dot">●</span>}
         <div className="tabs">
-          {(['tokens','ir','vm'] as const).map(t => (
+          {(['tokens','ir','vm','ast'] as const).map(t => (
             <button key={t} className={activeTab === t ? 'active' : ''} onClick={() => setActiveTab(t)}>
-              {t === 'tokens' ? 'Tokens' : t === 'ir' ? 'TAC / IR' : 'VM Output'}
+              {{ tokens: 'Tokens', ir: 'TAC / IR', vm: 'VM Output', ast: 'AST' }[t]}
             </button>
           ))}
         </div>
@@ -264,6 +275,14 @@ export default function App() {
                   <Panel title={`TAC Instructions (${outputs.ir?.instructions?.length ?? 0})`}>
                     <TacList instrs={outputs.ir?.instructions ?? []} />
                   </Panel>
+                )}
+                {activeTab === 'ast' && (
+                  <div className="panel">
+                    <div className="panel-title">AST — click a node to jump to source</div>
+                    <div style={{ flex: 1, overflow: 'hidden' }}>
+                      <AstView ast={outputs.rdAst?.ast ?? null} onNodeClick={highlightSpan} />
+                    </div>
+                  </div>
                 )}
                 {activeTab === 'vm' && (
                   <Panel title="VM Execution">
