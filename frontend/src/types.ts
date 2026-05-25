@@ -157,14 +157,17 @@ export interface Ll1ParseOutput {
 }
 
 export interface LrParseOutput {
-  trace:    string[];
-  errors:   CompilerError[];
-  accepted: boolean;
+  accepted:     boolean;
+  trace:        { step: number; stack: string; input: string; action: string }[];
+  errors:       CompilerError[];
+  action_table: [string, string][][];
+  goto_table:   [string, number][][];
 }
 
 export interface SemanticOutput {
-  symbol_snapshots: SymbolEntry[][];
-  errors:           CompilerError[];
+  typed_ast:       AstNode | null;
+  symbol_snapshot: SymbolEntry[];
+  errors:          CompilerError[];
 }
 
 export interface IrOutput {
@@ -173,13 +176,16 @@ export interface IrOutput {
 }
 
 export interface CodegenOutput {
-  bytecode: VmInstr[];
-  errors:   CompilerError[];
+  bytecode:     VmInstr[];
+  function_map: Record<string, number>;
+  errors:       CompilerError[];
 }
 
 export interface VmOutput {
-  output: string;
-  errors: CompilerError[];
+  stdout:     string[];
+  errors:     CompilerError[];
+  halted:     boolean;
+  step_count: number;
 }
 
 // ── Phase 18 — Report Tables ───────────────────────────────────────────────────
