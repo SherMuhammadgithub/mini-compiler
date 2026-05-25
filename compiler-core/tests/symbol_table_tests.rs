@@ -3,11 +3,11 @@ use compiler_core::semantic::analyze;
 use compiler_core::types::SymbolKind;
 
 fn has_entry(src: &str, name: &str) -> bool {
-    analyze(src).entries.iter().any(|e| e.name == name)
+    analyze(src).symbol_snapshot.iter().any(|e| e.name == name)
 }
 
 fn entry_kind(src: &str, name: &str) -> Option<SymbolKind> {
-    analyze(src).entries.iter().find(|e| e.name == name).map(|e| e.kind.clone())
+    analyze(src).symbol_snapshot.iter().find(|e| e.name == name).map(|e| e.kind.clone())
 }
 
 fn has_semantic_error(src: &str) -> bool {
@@ -39,7 +39,7 @@ fn multiple_vars_in_table() {
 #[test]
 fn real_var_in_table() {
     let out = analyze("program p ( x ) ; var r : real ; begin end .");
-    let e = out.entries.iter().find(|e| e.name == "r").unwrap();
+    let e = out.symbol_snapshot.iter().find(|e| e.name == "r").unwrap();
     assert!(matches!(e.pascal_type, compiler_core::types::PascalType::Real));
 }
 
@@ -48,7 +48,7 @@ fn array_var_in_table() {
     let out = analyze(
         "program p ( x ) ; var a : array [ 1 .. 5 ] of integer ; begin end ."
     );
-    let e = out.entries.iter().find(|e| e.name == "a").unwrap();
+    let e = out.symbol_snapshot.iter().find(|e| e.name == "a").unwrap();
     assert!(matches!(e.pascal_type, compiler_core::types::PascalType::Array { .. }));
 }
 
@@ -85,7 +85,7 @@ fn param_kind_is_parameter() {
 #[test]
 fn global_var_at_level_zero() {
     let out = analyze("program p ( x ) ; var n : integer ; begin end .");
-    let n = out.entries.iter().find(|e| e.name == "n").unwrap();
+    let n = out.symbol_snapshot.iter().find(|e| e.name == "n").unwrap();
     assert_eq!(n.scope_level, 0);
 }
 
@@ -93,7 +93,7 @@ fn global_var_at_level_zero() {
 fn function_at_level_zero() {
     let src = "program p ( x ) ; function sq ( n : integer ) : integer ; begin sq := n * n end ; begin end .";
     let out = analyze(src);
-    let sq = out.entries.iter().find(|e| e.name == "sq").unwrap();
+    let sq = out.symbol_snapshot.iter().find(|e| e.name == "sq").unwrap();
     assert_eq!(sq.scope_level, 0);
 }
 
@@ -146,5 +146,5 @@ fn inner_param_shadows_outer_without_error() {
     // No undeclared errors expected
     assert!(!has_semantic_error(src));
     // `n` lives only in the function's scope dump, not in global entries
-    assert!(!out.entries.iter().any(|e| e.name == "n"));
+    assert!(!out.symbol_snapshot.iter().any(|e| e.name == "n"));
 }
