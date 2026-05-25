@@ -10,7 +10,7 @@ mod error_handler;
 pub mod first_follow;
 mod grammar;
 mod ir;
-mod lexer;
+pub mod lexer;
 mod ll1_parser;
 mod ll1_table;
 mod lr_items;
