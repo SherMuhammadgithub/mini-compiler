@@ -5,7 +5,7 @@ use wasm_bindgen::prelude::*;
 
 pub mod ast;
 pub mod buffer;
-mod codegen;
+pub mod codegen;
 pub mod error_handler;
 pub mod first_follow;
 mod grammar;
