@@ -20,7 +20,7 @@ pub mod rd_parser;
 pub mod semantic;
 pub mod symbol_table;
 pub mod types;
-mod vm;
+pub mod vm;
 
 /// Serialize any value to JSON; on failure return an error JSON object.
 fn to_json<T: serde::Serialize>(v: &T) -> String {

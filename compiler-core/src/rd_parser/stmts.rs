@@ -52,8 +52,12 @@ impl Parser {
                 let cond = self.parse_expression();
                 self.expect(&TokenKind::Then);
                 let then_branch = self.parse_statement()?;
-                self.expect(&TokenKind::Else);
-                let else_branch = self.parse_statement();
+                let else_branch = if self.at(&TokenKind::Else) {
+                    self.advance();
+                    self.parse_statement()
+                } else {
+                    None
+                };
                 Some(AstNode {
                     kind: NodeKind::IfStatement {
                         cond: Box::new(cond),

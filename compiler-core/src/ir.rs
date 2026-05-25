@@ -38,8 +38,8 @@ impl IrGen {
     fn gen_program(&mut self, node: &AstNode) {
         if let NodeKind::Program { declarations, subprograms, body, .. } = &node.kind {
             self.gen_stmt(declarations);
-            self.gen_stmt(subprograms);
-            self.gen_stmt(body);
+            self.gen_stmt(body);        // main body first so pc=0 is entry
+            self.gen_stmt(subprograms); // function/procedure bodies appended after
         }
     }
 

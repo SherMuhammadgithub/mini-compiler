@@ -1,10 +1,12 @@
 // Stack VM bytecode generator. Translates TAC quadruples to VmInstr sequences.
 use crate::types::{TacArg, TacOp, VmInstr, VmValue};
 use serde::Serialize;
+use std::collections::HashMap;
 
 #[derive(Serialize)]
 pub struct CodegenOutput {
     pub bytecode: Vec<VmInstr>,
+    pub function_map: HashMap<String, usize>, // label name → bytecode index
     pub errors: Vec<crate::types::CompilerError>,
 }
 
@@ -13,11 +15,19 @@ pub fn generate(source: &str) -> CodegenOutput {
     let mut bc: Vec<VmInstr> = vec![];
     let instrs = &ir_out.instructions;
 
-    // First pass: build a label→index map so jumps can be resolved.
-    // We emit placeholder Jmp(0)/JmpFalse(0) and patch them after.
+    // Pre-scan: collect names of function/procedure labels (not control-flow L0/L1 labels).
+    // A function label is any label whose name is not purely "L" followed by digits.
+    let func_labels: std::collections::HashSet<String> = instrs.iter()
+        .filter_map(|i| if let (crate::types::TacOp::Label, Some(crate::types::TacArg::Label(n))) = (&i.op, &i.arg1) {
+            let is_ln = n.starts_with('L') && n.len() > 1 && n[1..].chars().all(|c| c.is_ascii_digit());
+            if !is_ln { Some(n.clone()) } else { None }
+        } else { None })
+        .collect();
+
+    let mut main_halt_emitted = false; // Halt inserted between main body and first function
+
+    // Single pass: emit bytecode with a patch-list for forward jumps.
     let mut label_map: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
-    // Two-pass: collect label positions from a dry-run count, then emit for real.
-    // Simpler: single pass with a patch-list.
     let mut patches: Vec<(usize, String)> = vec![];   // (bc index, label name)
 
     for instr in instrs {
@@ -120,6 +130,11 @@ pub fn generate(source: &str) -> CodegenOutput {
             }
             TacOp::Label => {
                 if let Some(TacArg::Label(name)) = &instr.arg1 {
+                    // Insert Halt to terminate the main body before the first function label.
+                    if func_labels.contains(name) && !main_halt_emitted {
+                        bc.push(VmInstr::Halt);
+                        main_halt_emitted = true;
+                    }
                     label_map.insert(name.clone(), bc.len());
                 }
             }
@@ -178,7 +193,7 @@ pub fn generate(source: &str) -> CodegenOutput {
         }
     }
 
-    CodegenOutput { bytecode: bc, errors: ir_out.errors }
+    CodegenOutput { bytecode: bc, function_map: label_map, errors: ir_out.errors }
 }
 
 fn push_arg(bc: &mut Vec<VmInstr>, arg: &TacArg) {
