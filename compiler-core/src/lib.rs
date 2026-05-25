@@ -9,7 +9,7 @@ mod codegen;
 pub mod error_handler;
 pub mod first_follow;
 mod grammar;
-mod ir;
+pub mod ir;
 pub mod lexer;
 pub mod ll1_parser;
 mod ll1_table;
