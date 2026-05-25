@@ -1,6 +1,6 @@
 // SLR(1) action and goto table construction from LR(0) item sets.
 // Uses FOLLOW sets for reduce decisions (SLR approach, equivalent to LALR(1) for this grammar).
-use crate::first_follow::{FirstFollowSets, Grammar, GrammarSymbol, NonTerminal};
+use crate::first_follow::{symbol_display, FirstFollowSets, Grammar, GrammarSymbol, NonTerminal};
 use crate::lr_items::{build_lr_grammar, canonical_collection, LrProd};
 use crate::types::{AddopKind, MulopKind, RelopKind, TokenKind};
 use serde::Serialize;
@@ -126,6 +126,67 @@ pub fn lookup_action<'a>(
     tok: &TokenKind,
 ) -> Option<&'a LrAction> {
     row.get(tok).or_else(|| row.get(&class_rep(tok)))
+}
+
+// ── Phase 18 report ───────────────────────────────────────────────────────────
+
+#[derive(Serialize)]
+pub struct LrTableReport {
+    pub terminals:     Vec<String>,
+    pub non_terminals: Vec<String>,
+    pub action_rows:   Vec<HashMap<String, String>>,
+    pub goto_rows:     Vec<HashMap<String, usize>>,
+}
+
+pub fn build_lalr1_table_report() -> LrTableReport {
+    let grammar = Grammar::pascal_subset();
+    let table = build_lalr1_table(&grammar);
+
+    // Collect all terminals that appear in any action row, sorted alphabetically.
+    let mut term_set: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+    for row in &table.action {
+        for tok in row.keys() {
+            term_set.insert(symbol_display(&GrammarSymbol::Terminal(tok.clone())));
+        }
+    }
+    let terminals: Vec<String> = term_set.into_iter().collect();
+
+    // Non-terminals that have at least one goto entry.
+    let non_terminals: Vec<String> = NonTerminal::all()
+        .into_iter()
+        .filter(|nt| table.goto_map.iter().any(|row| row.contains_key(nt)))
+        .map(|nt| nt.display_name().to_owned())
+        .collect();
+
+    let action_rows: Vec<HashMap<String, String>> = table
+        .action
+        .iter()
+        .map(|row| {
+            row.iter()
+                .map(|(tok, act)| {
+                    let key = symbol_display(&GrammarSymbol::Terminal(tok.clone()));
+                    let val = match act {
+                        LrAction::Shift(s)  => format!("s{}", s),
+                        LrAction::Reduce(p) => format!("r{}", p),
+                        LrAction::Accept    => "acc".to_owned(),
+                    };
+                    (key, val)
+                })
+                .collect()
+        })
+        .collect();
+
+    let goto_rows: Vec<HashMap<String, usize>> = table
+        .goto_map
+        .iter()
+        .map(|row| {
+            row.iter()
+                .map(|(nt, &s)| (nt.display_name().to_owned(), s))
+                .collect()
+        })
+        .collect();
+
+    LrTableReport { terminals, non_terminals, action_rows, goto_rows }
 }
 
 /// Returns the grammar's class representative for operator tokens, or clones the token.

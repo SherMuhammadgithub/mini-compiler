@@ -71,3 +71,18 @@ pub fn run_codegen(source: &str) -> String {
 pub fn run_program(source: &str, input: &str) -> String {
     to_json(&vm::execute(source, input))
 }
+
+#[wasm_bindgen]
+pub fn get_first_follow() -> String {
+    to_json(&first_follow::report())
+}
+
+#[wasm_bindgen]
+pub fn get_ll1_table() -> String {
+    to_json(&ll1_table::build_ll1_table_report())
+}
+
+#[wasm_bindgen]
+pub fn get_lr_tables() -> String {
+    to_json(&lr_table::build_lalr1_table_report())
+}

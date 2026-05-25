@@ -1,6 +1,7 @@
 // LL(1) parsing table M[A, a] = production index, built from FIRST/FOLLOW sets.
-use crate::first_follow::{first_of_string, Grammar, GrammarSymbol, NonTerminal};
+use crate::first_follow::{first_of_string, symbol_display, Grammar, GrammarSymbol, NonTerminal};
 use crate::types::{AddopKind, MulopKind, RelopKind, TokenKind};
+use serde::Serialize;
 use std::collections::HashMap;
 
 /// Maps (NonTerminal, terminal TokenKind) → index into Grammar.productions.
@@ -79,6 +80,51 @@ pub fn build_ll1_table(grammar: &Grammar) -> Ll1Table {
     }
 
     table
+}
+
+// ── Phase 18 report ───────────────────────────────────────────────────────────
+
+#[derive(Serialize)]
+pub struct Ll1TableRow {
+    pub non_terminal: String,
+    pub cells: HashMap<String, String>,
+}
+
+#[derive(Serialize)]
+pub struct Ll1TableReport {
+    pub terminals: Vec<String>,
+    pub rows: Vec<Ll1TableRow>,
+}
+
+pub fn build_ll1_table_report() -> Ll1TableReport {
+    let grammar = Grammar::pascal_subset();
+    let table = build_ll1_table(&grammar);
+
+    // Collect every terminal that appears in any cell, sorted alphabetically.
+    let mut term_set: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+    for ((_nt, tok), _) in &table {
+        term_set.insert(symbol_display(&GrammarSymbol::Terminal(tok.clone())));
+    }
+    let terminals: Vec<String> = term_set.into_iter().collect();
+
+    let rows = NonTerminal::all()
+        .into_iter()
+        .map(|nt| {
+            let mut cells: HashMap<String, String> = HashMap::new();
+            for ((row_nt, tok), &prod_idx) in &table {
+                if row_nt != &nt {
+                    continue;
+                }
+                let term_str = symbol_display(&GrammarSymbol::Terminal(tok.clone()));
+                let (lhs, rhs) = &grammar.productions[prod_idx];
+                let rhs_str = rhs.iter().map(symbol_display).collect::<Vec<_>>().join(" ");
+                cells.insert(term_str, format!("{} → {}", lhs.display_name(), rhs_str));
+            }
+            Ll1TableRow { non_terminal: nt.display_name().to_owned(), cells }
+        })
+        .collect();
+
+    Ll1TableReport { terminals, rows }
 }
 
 /// True when a stack terminal and the current input token are in the same operator class.

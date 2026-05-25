@@ -1,15 +1,20 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import Editor, { type Monaco, type OnMount } from '@monaco-editor/react';
 import { Allotment } from 'allotment';
 import 'allotment/dist/style.css';
 import { useCompiler } from './hooks/useCompiler';
+import { loadWasm } from './hooks/useWasm';
 import type {
-  CompilerError, TacInstr, SymbolEntry,
+  CompilerError, TacInstr,
   VmOutput as VmOut, Span,
+  FirstFollowOutput, Ll1TableOutput, LrTableOutput,
 } from './types';
-import { TokenPanel } from './components/TokenPanel';
-import { ErrorPanel } from './components/ErrorPanel';
-import { AstView }    from './components/AstView';
+import { TokenPanel }    from './components/TokenPanel';
+import { ErrorPanel }    from './components/ErrorPanel';
+import { AstView }       from './components/AstView';
+import { SymbolTable }   from './components/SymbolTable';
+import { StepMode }      from './components/StepMode';
+import { ReportTables }  from './components/ReportTables';
 import './App.css';
 
 // ── Default program ───────────────────────────────────────────────────────────
@@ -160,37 +165,30 @@ function VmOutputPanel({ out }: { out: VmOut | null }) {
   );
 }
 
-const SCOPE_BG = ['#EFF6FF','#F0FDF4','#FFF7ED','#FDF4FF'];
-
-function SymbolList({ entries }: { entries: SymbolEntry[] }) {
-  if (entries.length === 0) return <div className="no-errors">No symbols</div>;
-  return (
-    <table className="sym-table">
-      <thead><tr><th>Name</th><th>Kind</th><th>Type</th><th>Scope</th></tr></thead>
-      <tbody>
-        {entries.map((e, i) => (
-          <tr key={i} style={{ background: SCOPE_BG[e.scope_level % SCOPE_BG.length] }}>
-            <td style={{ paddingLeft: e.scope_level * 10 + 4 }}>{e.name}</td>
-            <td>{String(e.kind)}</td>
-            <td>{typeof e.pascal_type === 'string' ? e.pascal_type : JSON.stringify(e.pascal_type)}</td>
-            <td>{e.scope_level}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-}
-
 // ── App root ──────────────────────────────────────────────────────────────────
 
 export default function App() {
-  const [source, setSource] = useState(DEFAULT_SOURCE);
-  const [progInput, setProgInput] = useState('');
-  const [dark, setDark] = useState(true);
-  const [activeTab, setActiveTab] = useState<'tokens'|'ir'|'vm'|'ast'>('tokens');
+  const [source, setSource]         = useState(DEFAULT_SOURCE);
+  const [progInput, setProgInput]   = useState('');
+  const [dark, setDark]             = useState(true);
+  const [activeTab, setActiveTab]   = useState<'tokens'|'ir'|'vm'|'ast'|'reports'>('tokens');
+  const [stepMode, setStepMode]     = useState(false);
+  const [stepStage, setStepStage]   = useState(0);
+  const [firstFollow, setFF]        = useState<FirstFollowOutput | null>(null);
+  const [ll1Table,   setLl1]        = useState<Ll1TableOutput    | null>(null);
+  const [lrTables,   setLr]         = useState<LrTableOutput     | null>(null);
   const editorRef  = useRef<Parameters<OnMount>[0] | null>(null);
   const monacoRef  = useRef<Monaco | null>(null);
   const decorIds   = useRef<string[]>([]);
+
+  // Load grammar tables once — they depend only on the grammar, not on user input.
+  useEffect(() => {
+    loadWasm().then(wasm => {
+      setFF(JSON.parse(wasm.get_first_follow()));
+      setLl1(JSON.parse(wasm.get_ll1_table()));
+      setLr(JSON.parse(wasm.get_lr_tables()));
+    });
+  }, []);
 
   const outputs = useCompiler(source, progInput);
   const errors  = allErrors(outputs);
@@ -229,18 +227,36 @@ export default function App() {
     monacoRef.current?.editor.setTheme(next ? 'pascal-dark' : 'pascal-light');
   };
 
+  // Stage → tab mapping for demo step mode
+  const STAGE_TABS = ['tokens','ast','reports','reports','tokens','ast','ir','vm'] as const;
+  const goStep = (next: number) => {
+    setStepStage(next);
+    setActiveTab(STAGE_TABS[next]);
+  };
+  const toggleStep = () => {
+    const entering = !stepMode;
+    setStepMode(entering);
+    if (entering) { setStepStage(0); setActiveTab('tokens'); }
+  };
+
   return (
     <div className={`app ${dark ? 'dark' : 'light'}`}>
       <header className="toolbar">
         <span className="brand">Pascal Compiler</span>
         {outputs.loading && <span className="loading-dot">●</span>}
         <div className="tabs">
-          {(['tokens','ir','vm','ast'] as const).map(t => (
-            <button key={t} className={activeTab === t ? 'active' : ''} onClick={() => setActiveTab(t)}>
-              {{ tokens: 'Tokens', ir: 'TAC / IR', vm: 'VM Output', ast: 'AST' }[t]}
-            </button>
-          ))}
+          {stepMode
+            ? <StepMode active={stepStage} onPrev={() => goStep(stepStage - 1)} onNext={() => goStep(stepStage + 1)} />
+            : (['tokens','ir','vm','ast','reports'] as const).map(t => (
+                <button key={t} className={activeTab === t ? 'active' : ''} onClick={() => setActiveTab(t)}>
+                  {{ tokens: 'Tokens', ir: 'TAC / IR', vm: 'VM Output', ast: 'AST', reports: 'Reports' }[t]}
+                </button>
+              ))
+          }
         </div>
+        <button className="theme-btn" onClick={toggleStep}>
+          {stepMode ? 'Exit Demo' : 'Demo'}
+        </button>
         <button className="theme-btn" onClick={toggleDark} aria-label="Toggle theme">
           {dark ? '☀' : '☾'}
         </button>
@@ -284,6 +300,11 @@ export default function App() {
                     </div>
                   </div>
                 )}
+                {activeTab === 'reports' && (
+                  <Panel title="Report Tables — FIRST/FOLLOW · LL(1) · LR">
+                    <ReportTables ff={firstFollow} ll1={ll1Table} lr={lrTables} />
+                  </Panel>
+                )}
                 {activeTab === 'vm' && (
                   <Panel title="VM Execution">
                     <div className="vm-io">
@@ -309,7 +330,7 @@ export default function App() {
                   </Allotment.Pane>
                   <Allotment.Pane>
                     <Panel title={`Symbols (${outputs.semantic?.symbol_snapshot?.length ?? 0})`}>
-                      <SymbolList entries={outputs.semantic?.symbol_snapshot ?? []} />
+                      <SymbolTable entries={outputs.semantic?.symbol_snapshot ?? []} />
                     </Panel>
                   </Allotment.Pane>
                 </Allotment>
