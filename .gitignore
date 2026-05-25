@@ -1,0 +1,34 @@
+# ── Rust ──────────────────────────────────────────────────────────────────────
+/compiler-core/target/
+
+# wasm-pack generated output (built from source, not committed)
+/compiler-core/pkg/
+
+# ── Node / Frontend ───────────────────────────────────────────────────────────
+/frontend/node_modules/
+/frontend/dist/
+/frontend/.vite/
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.iml
+*.suo
+*.user
+
+# ── OS ────────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Environment / Secrets ─────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ── Project planning (internal, not for repo) ─────────────────────────────────
+PLAN.md
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+npm-debug.log*
