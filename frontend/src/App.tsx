@@ -256,12 +256,12 @@ export default function App() {
             <Allotment vertical>
               <Allotment.Pane minSize={120}>
                 {activeTab === 'tokens' && (
-                  <Panel title={`Tokens (${outputs.lexer?.tokens.length ?? 0})`}>
+                  <Panel title={`Tokens (${outputs.lexer?.tokens?.length ?? 0})`}>
                     <TokenPanel tokens={outputs.lexer?.tokens ?? []} />
                   </Panel>
                 )}
                 {activeTab === 'ir' && (
-                  <Panel title={`TAC Instructions (${outputs.ir?.instructions.length ?? 0})`}>
+                  <Panel title={`TAC Instructions (${outputs.ir?.instructions?.length ?? 0})`}>
                     <TacList instrs={outputs.ir?.instructions ?? []} />
                   </Panel>
                 )}
@@ -289,7 +289,7 @@ export default function App() {
                     </Panel>
                   </Allotment.Pane>
                   <Allotment.Pane>
-                    <Panel title={`Symbols (${outputs.semantic?.symbol_snapshot.length ?? 0})`}>
+                    <Panel title={`Symbols (${outputs.semantic?.symbol_snapshot?.length ?? 0})`}>
                       <SymbolList entries={outputs.semantic?.symbol_snapshot ?? []} />
                     </Panel>
                   </Allotment.Pane>
