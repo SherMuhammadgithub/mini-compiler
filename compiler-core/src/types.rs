@@ -168,6 +168,7 @@ pub enum TacOp {
     Return,
     Read,
     Write,
+    DeclArray,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -202,8 +203,9 @@ pub enum VmInstr {
     Or,
     Load(String),
     Store(String),
-    LoadIdx,
-    StoreIdx,
+    AllocArray(String, i64, i64),
+    LoadIdx(String),
+    StoreIdx(String),
     Jmp(usize),
     JmpFalse(usize),
     Call(String),

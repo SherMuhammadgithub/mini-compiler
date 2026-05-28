@@ -112,20 +112,25 @@ pub fn generate(source: &str) -> CodegenOutput {
                 push_arg(&mut bc, instr.arg1.as_ref().unwrap());
                 store_result(&mut bc, instr.result.as_ref().unwrap());
             }
+            TacOp::DeclArray => {
+                if let (Some(TacArg::Name(n)), Some(TacArg::IntLit(low)), Some(TacArg::IntLit(high))) = (&instr.arg1, &instr.arg2, &instr.result) {
+                    bc.push(VmInstr::AllocArray(n.clone(), *low, *high));
+                }
+            }
             TacOp::CopyToArray => {
                 // arg1 = value, arg2 = index, result = array name
                 push_arg(&mut bc, instr.arg1.as_ref().unwrap());
                 push_arg(&mut bc, instr.arg2.as_ref().unwrap());
                 if let Some(TacArg::Name(n)) = &instr.result {
-                    bc.push(VmInstr::Store(n.clone()));
+                    bc.push(VmInstr::StoreIdx(n.clone()));
                 }
-                bc.push(VmInstr::StoreIdx);
             }
             TacOp::CopyFromArray => {
                 // arg1 = array name, arg2 = index, result = temp
-                push_arg(&mut bc, instr.arg1.as_ref().unwrap());
                 push_arg(&mut bc, instr.arg2.as_ref().unwrap());
-                bc.push(VmInstr::LoadIdx);
+                if let Some(TacArg::Name(n)) = &instr.arg1 {
+                    bc.push(VmInstr::LoadIdx(n.clone()));
+                }
                 store_result(&mut bc, instr.result.as_ref().unwrap());
             }
             TacOp::Label => {

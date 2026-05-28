@@ -208,6 +208,15 @@ fn vm_gcd_program_halts_without_crash() {
     assert!(out.halted, "GCD program should halt");
 }
 
+#[test]
+fn vm_arraysum_output_is_correct() {
+    // Array sum: read 5 elements from input, write their sum.
+    let out = vm::execute(ARRAY_SUM, "1 2 3 4 5");
+    assert!(out.halted, "ArraySum should halt");
+    assert!(out.errors.is_empty(), "ArraySum errors: {:?}", out.errors);
+    assert_eq!(out.stdout, vec!["15"]);
+}
+
 // ── Duplicate variable (invalid) ──────────────────────────────────────────────
 
 #[test]

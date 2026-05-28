@@ -15,12 +15,14 @@ pub struct VmOutput {
 struct VmState {
     stack: Vec<VmValue>,
     memory: HashMap<String, VmValue>,
+    arrays: HashMap<String, (i64, Vec<VmValue>)>, // name → (low, elements)
     pc: usize,
     input: Vec<String>,
     input_ptr: usize,
     output: Vec<String>,
     call_stack: Vec<usize>, // return addresses
     memory_stack: Vec<HashMap<String, VmValue>>, // saved memory per call frame
+    array_stack: Vec<HashMap<String, (i64, Vec<VmValue>)>>, // saved arrays per call frame
     steps: usize,
 }
 
@@ -66,15 +68,28 @@ impl VmState {
                     let v = self.pop()?;
                     self.memory.insert(n, v); self.pc += 1;
                 }
-                VmInstr::LoadIdx => {
-                    // Array indexing is best-effort: pop index + base, push 0.
-                    if !self.stack.is_empty() { self.pop()?; }
-                    if !self.stack.is_empty() { self.pop()?; }
-                    self.push(VmValue::Int(0)); self.pc += 1;
+                VmInstr::AllocArray(n, low, high) => {
+                    let size = (high - low + 1) as usize;
+                    self.arrays.insert(n, (low, vec![VmValue::Int(0); size]));
+                    self.pc += 1;
                 }
-                VmInstr::StoreIdx => {
-                    // Clean up the remaining value left by the CopyToArray sequence.
-                    if !self.stack.is_empty() { self.pop()?; }
+                VmInstr::LoadIdx(n) => {
+                    let idx = self.pop()?;
+                    if let Some((low, elements)) = self.arrays.get(&n) {
+                        let offset = idx_to_offset(idx, *low, elements.len())?;
+                        self.push(elements[offset].clone());
+                    } else {
+                        self.push(VmValue::Int(0));
+                    }
+                    self.pc += 1;
+                }
+                VmInstr::StoreIdx(n) => {
+                    let idx = self.pop()?;
+                    let val = self.pop()?;
+                    if let Some((low, elements)) = self.arrays.get_mut(&n) {
+                        let offset = idx_to_offset(idx, *low, elements.len())?;
+                        elements[offset] = val;
+                    }
                     self.pc += 1;
                 }
                 VmInstr::Jmp(t) => { self.pc = t; }
@@ -84,6 +99,7 @@ impl VmState {
                 }
                 VmInstr::Call(name) => {
                     self.memory_stack.push(self.memory.clone());
+                    self.array_stack.push(self.arrays.clone());
                     self.call_stack.push(self.pc + 1);
                     self.pc = *func_map.get(&name)
                         .ok_or_else(|| runtime_err(&format!("undefined function: {}", name)))?;
@@ -91,6 +107,9 @@ impl VmState {
                 VmInstr::Ret => {
                     if let Some(saved) = self.memory_stack.pop() {
                         self.memory = saved;
+                    }
+                    if let Some(saved) = self.array_stack.pop() {
+                        self.arrays = saved;
                     }
                     self.pc = self.call_stack.pop().unwrap_or(program.len());
                 }
@@ -176,6 +195,18 @@ fn fmt_val(v: &VmValue) -> String {
     }
 }
 
+fn idx_to_offset(idx: VmValue, low: i64, len: usize) -> Result<usize, CompilerError> {
+    let i = match idx {
+        VmValue::Int(x) => x,
+        _ => return Err(runtime_err("array index must be integer")),
+    };
+    let offset = (i - low) as usize;
+    if offset >= len {
+        return Err(runtime_err(&format!("array index {} out of bounds (low={}, size={})", i, low, len)));
+    }
+    Ok(offset)
+}
+
 fn runtime_err(msg: &str) -> CompilerError {
     CompilerError { stage: "vm".into(), message: msg.into(), line: 0, column: 0, length: 0, severity: "error".into() }
 }
@@ -186,9 +217,9 @@ pub fn execute(source: &str, input: &str) -> VmOutput {
         return VmOutput { stdout: vec![], errors: cg_out.errors, halted: false, step_count: 0 };
     }
     let mut state = VmState {
-        stack: vec![], memory: HashMap::new(), pc: 0,
+        stack: vec![], memory: HashMap::new(), arrays: HashMap::new(), pc: 0,
         input: input.split_whitespace().map(String::from).collect(),
-        input_ptr: 0, output: vec![], call_stack: vec![], memory_stack: vec![], steps: 0,
+        input_ptr: 0, output: vec![], call_stack: vec![], memory_stack: vec![], array_stack: vec![], steps: 0,
     };
     let err = state.run(&cg_out.bytecode, &cg_out.function_map)
         .err().map(|e| vec![e]).unwrap_or_default();

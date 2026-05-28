@@ -80,7 +80,17 @@ impl IrGen {
             NodeKind::Declarations { items } => {
                 for item in items { self.gen_stmt(item); }
             }
-            _ => {} // VarDecl, TypeInteger, TypeReal, TypeArray, ParamGroup — no code
+            NodeKind::VarDecl { names, ty } => {
+                if let NodeKind::TypeArray { low, high, .. } = &ty.kind {
+                    for n in names {
+                        self.emit(Self::q(TacOp::DeclArray,
+                            Some(TacArg::Name(n.clone())),
+                            Some(TacArg::IntLit(*low)),
+                            Some(TacArg::IntLit(*high))));
+                    }
+                }
+            }
+            _ => {} // TypeInteger, TypeReal, ParamGroup — no code
         }
     }
 
@@ -185,8 +195,18 @@ impl IrGen {
             }
             "read" | "readln" => {
                 for arg in args {
-                    if let NodeKind::Variable { name: vname, .. } = &arg.kind {
-                        self.emit(Self::q(TacOp::Read, None, None, Some(TacArg::Name(vname.clone()))));
+                    match &arg.kind {
+                        NodeKind::Variable { name: vname, index: None } => {
+                            self.emit(Self::q(TacOp::Read, None, None, Some(TacArg::Name(vname.clone()))));
+                        }
+                        NodeKind::Variable { name: vname, index: Some(idx) } => {
+                            let idx_arg = self.gen_expr(idx);
+                            let t = self.new_temp();
+                            self.emit(Self::q(TacOp::Read, None, None, Some(t.clone())));
+                            self.emit(Self::q(TacOp::CopyToArray,
+                                Some(t), Some(idx_arg), Some(TacArg::Name(vname.clone()))));
+                        }
+                        _ => {}
                     }
                 }
             }

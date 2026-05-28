@@ -227,7 +227,7 @@ fn write_with_arg_pushes_before_write() {
 #[test]
 fn array_assignment_emits_store_idx() {
     let src = "program p ( x ) ; var a : array [ 1 .. 5 ] of integer ; begin a [ 1 ] := 7 end .";
-    assert!(has_instr(src, |i| matches!(i, VmInstr::StoreIdx)));
+    assert!(has_instr(src, |i| matches!(i, VmInstr::StoreIdx(_))));
 }
 
 // ── Error passthrough ──────────────────────────────────────────────────────────

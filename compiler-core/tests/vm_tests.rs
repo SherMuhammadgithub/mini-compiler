@@ -203,3 +203,27 @@ fn factorial_base_case() {
     assert!(out.errors.is_empty());
     assert_eq!(out.stdout, vec!["1"]);
 }
+
+#[test]
+fn array_store_and_read() {
+    let src = "program p ( x ) ; var a : array [ 1 .. 5 ] of integer ; begin a [ 1 ] := 42 ; write ( a [ 1 ] ) end .";
+    let out = run(src);
+    assert!(out.errors.is_empty());
+    assert_eq!(out.stdout, vec!["42"]);
+}
+
+#[test]
+fn array_sum_program_correct_output() {
+    let src = include_str!("../../test/arraysum.pas");
+    let out = run_with(src, "1 2 3 4 5");
+    assert!(out.errors.is_empty(), "errors: {:?}", out.errors);
+    assert_eq!(out.stdout, vec!["15"]);
+}
+
+#[test]
+fn array_multi_element_store() {
+    let src = "program p ( x ) ; var a : array [ 0 .. 2 ] of integer ; begin a [ 0 ] := 10 ; a [ 1 ] := 20 ; a [ 2 ] := 30 ; write ( a [ 0 ] + a [ 1 ] + a [ 2 ] ) end .";
+    let out = run(src);
+    assert!(out.errors.is_empty());
+    assert_eq!(out.stdout, vec!["60"]);
+}
