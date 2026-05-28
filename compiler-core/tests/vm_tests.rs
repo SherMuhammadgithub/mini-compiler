@@ -187,3 +187,19 @@ fn function_body_executes_write() {
     assert!(out.errors.is_empty());
     assert_eq!(out.stdout, vec!["7"]);
 }
+
+#[test]
+fn factorial_recursive_correct_output() {
+    let src = "program p ( x ) ; var n : integer ; function fact ( k : integer ) : integer ; begin if k = 0 then fact := 1 else fact := k * fact ( k - 1 ) end ; begin read ( n ) ; write ( fact ( n ) ) end .";
+    let out = run_with(src, "5");
+    assert!(out.errors.is_empty());
+    assert_eq!(out.stdout, vec!["120"]);
+}
+
+#[test]
+fn factorial_base_case() {
+    let src = "program p ( x ) ; var n : integer ; function fact ( k : integer ) : integer ; begin if k = 0 then fact := 1 else fact := k * fact ( k - 1 ) end ; begin read ( n ) ; write ( fact ( n ) ) end .";
+    let out = run_with(src, "0");
+    assert!(out.errors.is_empty());
+    assert_eq!(out.stdout, vec!["1"]);
+}

@@ -20,6 +20,7 @@ struct VmState {
     input_ptr: usize,
     output: Vec<String>,
     call_stack: Vec<usize>, // return addresses
+    memory_stack: Vec<HashMap<String, VmValue>>, // saved memory per call frame
     steps: usize,
 }
 
@@ -82,11 +83,15 @@ impl VmState {
                     self.pc = if is_truthy(&v) { self.pc + 1 } else { t };
                 }
                 VmInstr::Call(name) => {
+                    self.memory_stack.push(self.memory.clone());
                     self.call_stack.push(self.pc + 1);
                     self.pc = *func_map.get(&name)
                         .ok_or_else(|| runtime_err(&format!("undefined function: {}", name)))?;
                 }
                 VmInstr::Ret => {
+                    if let Some(saved) = self.memory_stack.pop() {
+                        self.memory = saved;
+                    }
                     self.pc = self.call_stack.pop().unwrap_or(program.len());
                 }
                 VmInstr::EnterFrame(_) | VmInstr::ExitFrame => { self.pc += 1; }
@@ -183,7 +188,7 @@ pub fn execute(source: &str, input: &str) -> VmOutput {
     let mut state = VmState {
         stack: vec![], memory: HashMap::new(), pc: 0,
         input: input.split_whitespace().map(String::from).collect(),
-        input_ptr: 0, output: vec![], call_stack: vec![], steps: 0,
+        input_ptr: 0, output: vec![], call_stack: vec![], memory_stack: vec![], steps: 0,
     };
     let err = state.run(&cg_out.bytecode, &cg_out.function_map)
         .err().map(|e| vec![e]).unwrap_or_default();
