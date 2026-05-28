@@ -1,2 +1,87 @@
+@import "tailwindcss";
+
+/* dark: variant applies when any ancestor has class .dark */
+@custom-variant dark (&:is(.dark *));
+
+/* Link Tailwind color tokens to our runtime CSS variables */
+@theme inline {
+  --color-background:           var(--background);
+  --color-foreground:           var(--foreground);
+  --color-card:                 var(--card);
+  --color-card-foreground:      var(--card-foreground);
+  --color-muted:                var(--muted);
+  --color-muted-foreground:     var(--muted-foreground);
+  --color-border:               var(--border);
+  --color-input:                var(--input);
+  --color-primary:              var(--primary);
+  --color-primary-foreground:   var(--primary-foreground);
+  --color-secondary:            var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent:               var(--accent);
+  --color-accent-foreground:    var(--accent-foreground);
+  --color-destructive:          var(--destructive);
+  --color-ring:                 var(--ring);
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+}
+
+/* ── Light theme ──────────────────────────────────────────────────────────── */
+:root {
+  --background: #ffffff;
+  --foreground: #09090b;
+  --card:       #fafafa;
+  --card-foreground: #09090b;
+  --muted:      #f4f4f5;
+  --muted-foreground: #71717a;
+  --border:     #e4e4e7;
+  --input:      #e4e4e7;
+  --primary:    #18181b;
+  --primary-foreground: #ffffff;
+  --secondary:  #f4f4f5;
+  --secondary-foreground: #18181b;
+  --accent:     #f4f4f5;
+  --accent-foreground: #18181b;
+  --destructive: #dc2626;
+  --ring:       #18181b;
+}
+
+/* ── Dark theme ───────────────────────────────────────────────────────────── */
+.dark {
+  --background: #0a0a0a;
+  --foreground: #fafafa;
+  --card:       #111111;
+  --card-foreground: #fafafa;
+  --muted:      #1a1a1a;
+  --muted-foreground: #909099;
+  --border:     #262626;
+  --input:      #262626;
+  --primary:    #e4e4e7;
+  --primary-foreground: #09090b;
+  --secondary:  #1a1a1a;
+  --secondary-foreground: #fafafa;
+  --accent:     #222222;
+  --accent-foreground: #fafafa;
+  --destructive: #f87171;
+  --ring:       #e4e4e7;
+}
+
+/* ── Base ─────────────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
 html, body, #root { height: 100%; margin: 0; }
+
+@layer base {
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: 'Poppins', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* ── Monaco error decorations ─────────────────────────────────────────────── */
+.error-underline      { text-decoration: underline wavy #f87171; text-underline-offset: 3px; }
+.error-gutter::before { content: '●'; color: #f87171; font-size: 10px; }
+
+/* ── Allotment dark mode ──────────────────────────────────────────────────── */
+.dark .split-view-view { background: transparent; }

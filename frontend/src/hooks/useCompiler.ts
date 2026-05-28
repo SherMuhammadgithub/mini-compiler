@@ -24,7 +24,7 @@ const EMPTY: CompilerOutputs = {
 
 export function useCompiler(source: string, programInput: string): CompilerOutputs {
   const [outputs, setOutputs] = useState<CompilerOutputs>(EMPTY);
-  const timer = useRef<ReturnType<typeof setTimeout>>();
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
     clearTimeout(timer.current);

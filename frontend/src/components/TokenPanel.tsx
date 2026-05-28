@@ -1,13 +1,5 @@
 import type { Token, TokenKind } from '../types';
-
-const KIND_COLOR: Record<string, string> = {
-  keyword:     '#7C3AED',
-  identifier:  '#2563EB',
-  number:      '#0891B2',
-  operator:    '#D97706',
-  punctuation: '#6B7280',
-  error:       '#DC2626',
-};
+import { cn } from '@/lib/utils';
 
 const KEYWORDS = new Set([
   'Program','Var','Array','Of','Integer','Real','Function','Procedure',
@@ -16,11 +8,11 @@ const KEYWORDS = new Set([
 
 export function categoryOf(kind: TokenKind): string {
   if (typeof kind === 'string') {
-    if (KEYWORDS.has(kind))       return 'keyword';
-    if (kind === 'Id')            return 'identifier';
-    if (kind === 'Num')           return 'number';
-    if (kind === 'Assignop')      return 'operator';
-    if (kind === 'Unknown')       return 'error';
+    if (KEYWORDS.has(kind))  return 'keyword';
+    if (kind === 'Id')       return 'identifier';
+    if (kind === 'Num')      return 'number';
+    if (kind === 'Assignop') return 'operator';
+    if (kind === 'Unknown')  return 'error';
     if (['LParen','RParen','LBracket','RBracket',
          'Semicolon','Colon','Comma','Dot','DotDot'].includes(kind)) return 'punctuation';
   }
@@ -31,25 +23,49 @@ export function categoryOf(kind: TokenKind): string {
 
 export function kindLabel(kind: TokenKind): string {
   if (typeof kind === 'string') return kind;
-  if ('Relop' in kind) return `Relop(${(kind as { Relop: string }).Relop})`;
-  if ('Addop' in kind) return `Addop(${(kind as { Addop: string }).Addop})`;
-  if ('Mulop' in kind) return `Mulop(${(kind as { Mulop: string }).Mulop})`;
+  if ('Relop' in kind) return `Relop`;
+  if ('Addop' in kind) return `Addop`;
+  if ('Mulop' in kind) return `Mulop`;
   return '?';
 }
 
+const CHIP_STYLES: Record<string, string> = {
+  keyword:     'bg-violet-700 text-white border-violet-600',
+  identifier:  'bg-blue-600 text-white border-blue-500',
+  number:      'bg-emerald-700 text-white border-emerald-600',
+  operator:    'bg-amber-600 text-white border-amber-500',
+  punctuation: 'bg-zinc-600 text-zinc-100 border-zinc-500',
+  error:       'bg-red-700 text-white border-red-600',
+};
+
 export function TokenPanel({ tokens }: { tokens: Token[] }) {
+  const filtered = tokens.filter(t => t.kind !== 'Eof');
+  if (filtered.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-20 text-sm text-muted-foreground italic">
+        No tokens yet
+      </div>
+    );
+  }
+
   return (
-    <div className="chip-wrap">
-      {tokens.filter(t => t.kind !== 'Eof').map((tok, i) => (
-        <span
-          key={i}
-          className="chip"
-          style={{ background: KIND_COLOR[categoryOf(tok.kind)] }}
-          title={`Line ${tok.line}, Col ${tok.column}`}
-        >
-          {kindLabel(tok.kind)}: {tok.lexeme}
-        </span>
-      ))}
+    <div className="flex flex-wrap gap-2 p-3">
+      {filtered.map((tok, i) => {
+        const cat = categoryOf(tok.kind);
+        return (
+          <span
+            key={i}
+            title={`${kindLabel(tok.kind)} · Line ${tok.line}, Col ${tok.column}`}
+            className={cn(
+              'inline-flex items-center gap-1 rounded-md border px-2.5 py-1 font-mono leading-tight',
+              CHIP_STYLES[cat],
+            )}
+          >
+            <span style={{ fontSize: 10, opacity: 0.7 }}>{kindLabel(tok.kind)}</span>
+            <span style={{ fontSize: 12, fontWeight: 700 }}>{tok.lexeme}</span>
+          </span>
+        );
+      })}
     </div>
   );
 }

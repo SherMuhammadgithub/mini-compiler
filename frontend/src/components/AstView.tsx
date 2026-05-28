@@ -52,6 +52,34 @@ function labelOf(node: AstNode): string {
   return '?';
 }
 
+function nodeCategory(node: AstNode): string {
+  const k = node.kind;
+  if (typeof k === 'string') return 'leaf';
+  if ('Program' in k) return 'program';
+  if ('FunctionDecl' in k || 'ProcedureDecl' in k) return 'subprogram';
+  if ('Declarations' in k || 'SubprogramDeclarations' in k ||
+      'VarDecl' in k || 'TypeArray' in k || 'ParamGroup' in k) return 'decl';
+  if ('CompoundStatement' in k || 'IfStatement' in k || 'WhileStatement' in k) return 'control';
+  if ('Assignment' in k || 'ProcedureCall' in k) return 'stmt';
+  if ('BinaryExpr' in k || 'UnaryExpr' in k) return 'expr';
+  if ('Variable' in k || 'FunctionCall' in k ||
+      'IntLiteral' in k || 'RealLiteral' in k) return 'value';
+  return 'other';
+}
+
+// Chip colors: [fill, text] — dark solid chips matching token chip style
+const CHIP: Record<string, [string, string]> = {
+  program:    ['#1e3a8a', '#bfdbfe'],
+  subprogram: ['#065f46', '#a7f3d0'],
+  decl:       ['#14532d', '#bbf7d0'],
+  control:    ['#7c2d12', '#fed7aa'],
+  stmt:       ['#3f3f46', '#f4f4f5'],
+  expr:       ['#78350f', '#fef3c7'],
+  value:      ['#164e63', '#cffafe'],
+  leaf:       ['#27272a', '#d4d4d8'],
+  other:      ['#1c1917', '#f5f5f4'],
+};
+
 function countNodes(node: AstNode): number {
   return 1 + childrenOf(node).reduce((s, c) => s + countNodes(c), 0);
 }
@@ -88,8 +116,8 @@ export function AstView({ ast, onNodeClick }: {
     if (countNodes(ast) > 500) {
       const fo = svg.append('foreignObject').attr('width', '100%').attr('height', '100%');
       fo.append('xhtml:pre')
-        .style('font', '12px/1.5 ui-monospace, Consolas, monospace')
-        .style('color', '#C9D1D9')
+        .style('font', "12px/1.5 'Poppins', ui-sans-serif, sans-serif")
+        .style('color', 'var(--color-foreground, #e4e4e7)')
         .style('padding', '8px')
         .style('margin', '0')
         .style('overflow', 'auto')
@@ -113,17 +141,20 @@ export function AstView({ ast, onNodeClick }: {
       .on('zoom', e => g.attr('transform', e.transform.toString()));
     svg.call(zoom).call(zoom.transform, d3.zoomIdentity.translate(cx, 40));
 
-    // links (cubic bezier)
+    const linkColor = getComputedStyle(svgRef.current)
+      .getPropertyValue('--color-border').trim() || '#333333';
+
+    // connector lines
     g.selectAll<SVGPathElement, d3.HierarchyPointLink<AstNode>>('path')
       .data(lks).join('path')
       .attr('fill', 'none')
-      .attr('stroke', '#30363D')
+      .attr('stroke', linkColor)
       .attr('stroke-width', 1.5)
       .attr('d', ({ source: s, target: t }) =>
         `M${s.x},${s.y} C${s.x},${(s.y + t.y) / 2} ${t.x},${(s.y + t.y) / 2} ${t.x},${t.y}`
       );
 
-    // nodes
+    // chip nodes
     const node = g.selectAll<SVGGElement, d3.HierarchyPointNode<AstNode>>('g')
       .data(pts).join('g')
       .attr('transform', d => `translate(${d.x},${d.y})`)
@@ -134,13 +165,16 @@ export function AstView({ ast, onNodeClick }: {
 
     node.append('rect')
       .attr('x', -NODE_W / 2).attr('y', -NODE_H / 2)
-      .attr('width', NODE_W).attr('height', NODE_H).attr('rx', 5)
-      .attr('fill', '#1E2530').attr('stroke', '#7C3AED').attr('stroke-width', 1.5);
+      .attr('width', NODE_W).attr('height', NODE_H).attr('rx', 7)
+      .attr('fill', d => CHIP[nodeCategory(d.data)]?.[0] ?? '#27272a')
+      .attr('stroke', 'none');
 
     node.append('text')
       .attr('text-anchor', 'middle').attr('dominant-baseline', 'middle')
-      .attr('fill', '#C9D1D9').attr('font-size', 11)
-      .attr('font-family', 'ui-monospace, Consolas, monospace')
+      .attr('fill', d => CHIP[nodeCategory(d.data)]?.[1] ?? '#e4e4e7')
+      .attr('font-size', 11)
+      .attr('font-weight', '500')
+      .attr('font-family', "'Poppins', ui-sans-serif, system-ui, sans-serif")
       .text(d => { const l = labelOf(d.data); return l.length > 14 ? l.slice(0, 13) + '…' : l; });
 
   }, [ast]);
