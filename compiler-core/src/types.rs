@@ -163,6 +163,7 @@ pub enum TacOp {
     Goto,
     IfFalseGoto,
     Param,
+    PopParam(String), // Pop a param from stack and store to variable name
     Call,
     Return,
     Read,

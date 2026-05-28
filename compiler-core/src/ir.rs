@@ -60,14 +60,16 @@ impl IrGen {
             NodeKind::ProcedureCall { name, args } => {
                 self.gen_call_stmt(name, args);
             }
-            NodeKind::FunctionDecl { name, declarations, body, .. } => {
+            NodeKind::FunctionDecl { name, params, declarations, body, .. } => {
                 self.emit(Self::q(TacOp::Label, Some(TacArg::Label(name.clone())), None, None));
+                self.gen_params_load(params);
                 self.gen_stmt(declarations);
                 self.gen_stmt(body);
-                self.emit(Self::q(TacOp::Return, None, None, None));
+                self.emit(Self::q(TacOp::Return, Some(TacArg::Name(name.clone())), None, None));
             }
-            NodeKind::ProcedureDecl { name, declarations, body, .. } => {
+            NodeKind::ProcedureDecl { name, params, declarations, body, .. } => {
                 self.emit(Self::q(TacOp::Label, Some(TacArg::Label(name.clone())), None, None));
+                self.gen_params_load(params);
                 self.gen_stmt(declarations);
                 self.gen_stmt(body);
                 self.emit(Self::q(TacOp::Return, None, None, None));
@@ -197,6 +199,16 @@ impl IrGen {
                     Some(TacArg::Name(name.to_owned())),
                     Some(TacArg::IntLit(args.len() as i64)),
                     None));
+            }
+        }
+    }
+
+    fn gen_params_load(&mut self, params: &[AstNode]) {
+        for pg in params {
+            if let NodeKind::ParamGroup { names, .. } = &pg.kind {
+                for name in names.iter().rev() {
+                    self.emit(Self::q(TacOp::PopParam(name.clone()), None, None, None));
+                }
             }
         }
     }

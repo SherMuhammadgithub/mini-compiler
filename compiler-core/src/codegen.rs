@@ -154,6 +154,9 @@ pub fn generate(source: &str) -> CodegenOutput {
             TacOp::Param => {
                 push_arg(&mut bc, instr.arg1.as_ref().unwrap());
             }
+            TacOp::PopParam(name) => {
+                bc.push(VmInstr::Store(name.clone()));
+            }
             TacOp::Call => {
                 if let Some(TacArg::Name(name)) = &instr.arg1 {
                     bc.push(VmInstr::Call(name.clone()));
@@ -163,6 +166,9 @@ pub fn generate(source: &str) -> CodegenOutput {
                 }
             }
             TacOp::Return => {
+                if let Some(TacArg::Name(name)) = &instr.arg1 {
+                    bc.push(VmInstr::Load(name.clone()));
+                }
                 bc.push(VmInstr::Ret);
             }
             TacOp::Read => {
